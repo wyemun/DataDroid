@@ -310,7 +310,6 @@ public class NetworkConnection {
             HttpUriRequest request = null;
             switch (method) {
                 case METHOD_GET:
-                case METHOD_PUT:
                 case METHOD_DELETE: {
                     final StringBuffer sb = new StringBuffer();
                     sb.append(url);
@@ -333,7 +332,12 @@ public class NetworkConnection {
                     }
 
                     if (LogConfig.DP_INFO_LOGS_ENABLED) {
-                        Log.i(LOG_TAG, "retrieveResponseFromService - GET Request - complete URL with parameters if any : ");
+                    	if (method == METHOD_GET) {
+                    		Log.i(LOG_TAG, "retrieveResponseFromService - GET Request - complete URL with parameters if any : ");
+                        } else if (method == METHOD_DELETE) {
+                        	Log.i(LOG_TAG, "retrieveResponseFromService - DELETE Request - complete URL with parameters if any : ");
+                        }
+                        
                         final String completeUrl = sb.toString();
                         int pos = 0;
                         int dumpLength = completeUrl.length();
@@ -371,7 +375,9 @@ public class NetworkConnection {
                         }
 
                         if (LogConfig.DP_INFO_LOGS_ENABLED) {
-                            Log.i(LOG_TAG, "retrieveResponseFromService - POST Request - parameters list (key => value) : ");
+                        	
+                        	Log.i(LOG_TAG, "retrieveResponseFromService - POST Request - parameters list (key => value) : ");
+                           
 
                             final int postRequestParametersLength = postRequestParameters.size();
                             for (int i = 0; i < postRequestParametersLength; i++) {
@@ -386,6 +392,43 @@ public class NetworkConnection {
                                                    // for
                         // example)
                         ((HttpPost) request).setEntity(new StringEntity(postText));
+                    }
+                    break;
+                }
+                case METHOD_PUT: {
+                    final URI uri = new URI(url);
+                    request = new HttpPut(uri);
+
+                    // Add the parameters to the POST request if any
+                    if (parameters != null && !parameters.isEmpty()) {
+
+                        final List<NameValuePair> postRequestParameters = new ArrayList<NameValuePair>();
+                        final ArrayList<String> keyList = new ArrayList<String>(parameters.keySet());
+                        final int keyListLength = keyList.size();
+
+                        for (int i = 0; i < keyListLength; i++) {
+                            final String key = keyList.get(i);
+                            postRequestParameters.add(new BasicNameValuePair(key, parameters.get(key)));
+                        }
+
+                        if (LogConfig.DP_INFO_LOGS_ENABLED) {
+                        	
+                            Log.i(LOG_TAG, "retrieveResponseFromService - PUT Request - parameters list (key => value) : ");
+                           
+
+                            final int postRequestParametersLength = postRequestParameters.size();
+                            for (int i = 0; i < postRequestParametersLength; i++) {
+                                final NameValuePair nameValuePair = postRequestParameters.get(i);
+                                Log.i(LOG_TAG, "- " + nameValuePair.getName() + " => " + nameValuePair.getValue());
+                            }
+                        }
+
+                        request.setHeader(HTTP.CONTENT_TYPE, "application/x-www-form-urlencoded");
+                        ((HttpPut) request).setEntity(new UrlEncodedFormEntity(postRequestParameters, "UTF-8"));
+                    } else if (null != postText) { // Add post text (send xml
+                                                   // for
+                        // example)
+                        ((HttpPut) request).setEntity(new StringEntity(postText));
                     }
                     break;
                 }
